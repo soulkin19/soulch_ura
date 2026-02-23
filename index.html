@@ -2,70 +2,49 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>e ちゃんねる - 裏</title>
+    <title>e ちゃんねる - 裏 (隔離層)</title>
     <style>
-        :root { --ura-red: #ff0000; --ura-black: #0d0d0d; --ura-gray: #1a1a1a; }
-        html, body { margin: 0; padding: 0; background-color: var(--ura-black); color: #ccc; min-height: 100vh; font-family: 'serif'; }
-        
-        /* BANされた時の絶望画面 */
-        #ban-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; color: red; z-index: 9999; justify-content: center; align-items: center; font-size: 30px; font-weight: bold; text-align: center; }
-
-        header { padding: 40px 20px; text-align: center; border-bottom: 2px solid var(--ura-red); }
-        .logo-text { font-size: 42px; color: var(--ura-red); font-weight: bold; text-shadow: 0 0 10px red; margin: 0; }
-        .sub-title { font-size: 20px; color: #666; margin-top: 10px; }
-
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-        
-        .btn-create { background-color: #333; color: var(--ura-red); border: 1px solid var(--ura-red); padding: 12px 24px; border-radius: 0; font-size: 16px; cursor: pointer; margin-bottom: 25px; }
-        
-        .board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .board-card { background: var(--ura-gray); border: 1px solid #333; padding: 15px; cursor: pointer; position: relative; }
-        .board-title { font-size: 16px; color: var(--ura-red); font-weight: bold; margin-bottom: 8px; }
-        .post-count { font-size: 12px; color: #888; }
-
-        #bbs-view { display: none; }
-        .form-input { background: #000; color: #fff; border: 1px solid #444; padding: 10px; margin-bottom: 10px; }
-        .form-textarea { width: 100%; background: #000; color: #fff; border: 1px solid #444; padding: 10px; height: 120px; }
-        
-        /* IP表示用スタイル */
-        .ip-badge { color: var(--ura-red); font-size: 11px; margin-left: 10px; font-family: monospace; border: 1px solid red; padding: 0 3px; }
-
-        .btn-group { display: flex; gap: 10px; margin: 20px 0; }
-        .btn-red { background-color: var(--ura-red); color: black; border: none; padding: 10px 25px; cursor: pointer; font-weight: bold; }
-        
-        .post-item { border-bottom: 1px solid #222; padding: 15px 0; }
-        .post-user { font-weight: bold; color: #eee; }
-        .post-img { max-width: 150px; filter: grayscale(100%) contrast(150%); border: 1px solid red; margin-top: 10px; }
+        /* デザインは前回の「絶望」スタイルを継承 */
+        :root { --ura-red: #ff0000; --ura-black: #0d0d0d; }
+        body { background-color: var(--ura-black); color: #888; font-family: 'MS PMincho', serif; margin: 0; }
+        #ban-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; color: red; z-index: 9999; justify-content: center; align-items: center; font-size: 30px; }
+        header { border-bottom: 2px solid #300; padding: 40px; text-align: center; }
+        .logo { color: var(--ura-red); font-size: 40px; font-weight: bold; text-shadow: 0 0 15px red; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        .board-card { background: #111; border: 1px solid #200; padding: 15px; margin-bottom: 10px; cursor: pointer; }
+        .board-title { color: var(--ura-red); font-weight: bold; }
+        .ip-text { color: red; font-family: monospace; font-size: 12px; }
+        .btn-ura { background: #200; color: var(--ura-red); border: 1px solid var(--ura-red); padding: 10px; cursor: pointer; }
+        .post-item { border-bottom: 1px solid #200; padding: 10px; }
     </style>
 </head>
 <body>
 
-<div id="ban-overlay">貴様は追放された。<br>二度と戻ってくるな。</div>
+<div id="ban-overlay">立ち去れ。</div>
 
-<header id="header-part">
-    <h1 class="logo-text">e ちゃんねる - 裏</h1>
-    <div class="sub-title">絶望の底へようこそ</div>
+<header>
+    <div class="logo">e ちゃんねる - 裏</div>
+    <p>選ばれし者のみが辿り着く場所</p>
 </header>
 
 <div class="container" id="top-view">
-    <button class="btn-create" onclick="createNewBoard()">新板 建立</button>
-    <div class="board-grid" id="board-list"></div>
+    <button class="btn-ura" onclick="createNewBoard()">新板建立</button>
+    <div id="board-list"></div>
 </div>
 
-<div class="container" id="bbs-view">
-    <input type="text" id="username" class="form-input" value="死に損ない">
-    <textarea id="content" class="form-textarea" placeholder="叫びを書き込め..."></textarea>
-    <div class="btn-group">
-        <button class="btn-red" id="send-btn">投稿</button>
-        <button class="btn-red" style="background-color: #333; color: white;" onclick="location.reload()">戻る</button>
+<div class="container" id="bbs-view" style="display:none;">
+    <input type="text" id="username" value="裏住人" style="background:#000; color:#ccc; border:1px solid #300;">
+    <textarea id="content" placeholder="闇を吐き出せ..." style="width:100%; background:#000; color:#ccc; border:1px solid #300; height:100px;"></textarea>
+    <div style="margin: 10px 0;">
+        <button class="btn-ura" id="send-btn">刻印する</button>
+        <button class="btn-ura" onclick="location.reload()">帰還</button>
     </div>
     <div id="message-container"></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCwhHspaG94goiCIjVj3h-Un5pBK3JTjMU",
@@ -77,8 +56,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const sanitize = (str) => str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-
     const getFp = () => {
         let id = localStorage.getItem('fp');
         if (!id) { id = 'fp_' + Math.random().toString(36).substr(2, 9); localStorage.setItem('fp', id); }
@@ -87,91 +64,89 @@
     const myId = getFp();
     let currentBoardId = '';
 
-    // 裏用のIP取得
-    async function getIp() {
-        try {
-            const res = await fetch('https://api.ipify.org?format=json');
-            const data = await res.json();
-            return data.ip;
-        } catch { return '?.?.?.?'; }
+    // 裏の住人認証（アクセスした瞬間に裏住人として登録される）
+    async function initUraUser() {
+        const userRef = doc(db, 'ura_users', myId);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            await setDoc(userRef, { joined: Date.now(), isUra: true });
+        }
     }
+    initUraUser();
 
-    // 裏用のアクセス遮断
-    async function checkUraBan() {
+    // BANチェック
+    async function checkBan() {
         const blackSnap = await getDoc(doc(db, 'blacklist', myId));
         if (blackSnap.exists()) {
-            const data = blackSnap.data();
-            if (data.type === 'perm') {
-                document.getElementById('ban-overlay').style.display = 'flex';
-                document.body.style.overflow = 'hidden';
-                return true;
-            }
+            document.getElementById('ban-overlay').style.display = 'flex';
+            return true;
         }
         return false;
     }
-    checkUraBan();
+    checkBan();
 
-    // 掲示板一覧
-    onSnapshot(query(collection(db, 'boards'), orderBy('lastUpdated', 'desc')), (snap) => {
+    async function getIp() {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        return data.ip;
+    }
+
+    // 裏専用コレクション「ura_boards」を参照
+    onSnapshot(query(collection(db, 'ura_boards'), orderBy('lastUpdated', 'desc')), (snap) => {
         const list = document.getElementById('board-list');
         list.innerHTML = '';
         snap.forEach(d => {
             const b = d.data();
             const card = document.createElement('div');
             card.className = 'board-card';
-            card.onclick = () => openBoard(d.id, b.title);
-            onSnapshot(collection(db, `boards/${d.id}/messages`), (mSnap) => {
-                card.innerHTML = `<div class="board-title">${sanitize(b.title)}</div>
-                                  <div class="post-count">犠牲数: ${mSnap.size}</div>`;
-            });
+            card.onclick = () => openBoard(d.id);
+            card.innerHTML = `<div class="board-title">${b.title}</div>`;
             list.appendChild(card);
         });
     });
 
     window.createNewBoard = async () => {
-        if (await checkUraBan()) return;
-        const t = prompt("板の名称を記せ:");
-        if (t) {
-            await addDoc(collection(db, 'boards'), { title: t, lastUpdated: Date.now(), ownerId: myId });
-        }
+        if (await checkBan()) return;
+        const t = prompt("板名:");
+        if (t) await addDoc(collection(db, 'ura_boards'), { title: t, lastUpdated: Date.now(), ownerId: myId });
     };
 
-    window.openBoard = (id, title) => {
+    window.openBoard = (id) => {
         currentBoardId = id;
         document.getElementById('top-view').style.display = 'none';
-        document.getElementById('header-part').style.display = 'none';
         document.getElementById('bbs-view').style.display = 'block';
-        const container = document.getElementById('message-container');
-        onSnapshot(query(collection(db, `boards/${id}/messages`), orderBy('timestamp', 'desc')), (snap) => {
+        onSnapshot(query(collection(db, `ura_boards/${id}/messages`), orderBy('timestamp', 'desc')), (snap) => {
+            const container = document.getElementById('message-container');
             container.innerHTML = '';
             snap.forEach(d => {
                 const m = d.data();
                 const div = document.createElement('div');
                 div.className = 'post-item';
-                div.innerHTML = `
-                    <div><span class="post-user">${sanitize(m.username)}</span> <span class="ip-badge">IP: ${m.ip || '不明'}</span></div>
-                    <div class="post-text">${sanitize(m.text)}</div>
-                    <div class="post-time">${new Date(m.timestamp).toLocaleString()}</div>
-                `;
+                div.innerHTML = `<div>${m.username} <span class="ip-text">[IP: ${m.ip}]</span></div><div>${m.text}</div>`;
                 container.appendChild(div);
             });
         });
     };
 
     document.getElementById('send-btn').onclick = async () => {
-        const txt = document.getElementById('content').value;
-        if (!txt) return;
-        if (await checkUraBan()) return;
+        if (await checkBan()) return;
+        
+        // 裏住人チェック
+        const userSnap = await getDoc(doc(db, 'ura_users', myId));
+        if (!userSnap.exists() || !userSnap.data().isUra) {
+            alert("貴様に書き込む資格はない。");
+            return;
+        }
 
         const ip = await getIp();
-        await addDoc(collection(db, `boards/${currentBoardId}/messages`), {
+        await addDoc(collection(db, `ura_boards/${currentBoardId}/messages`), {
             username: document.getElementById('username').value,
-            text: txt,
+            text: document.getElementById('content').value,
             timestamp: Date.now(),
-            uid: myId,
-            ip: ip // IPを保存
+            ip: ip,
+            uid: myId
         });
-        await setDoc(doc(db, 'boards', currentBoardId), { lastUpdated: Date.now() }, { merge: true });
+        await setDoc(doc(db, 'ura_boards', currentBoardId), { lastUpdated: Date.now() }, { merge: true });
         document.getElementById('content').value = '';
     };
 </script>
