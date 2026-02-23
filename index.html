@@ -2,29 +2,27 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>e ちゃんねる - 裏 (隔離層)</title>
+    <title>e ちゃんねる - 裏 (追跡層)</title>
     <style>
-        /* デザインは前回の「絶望」スタイルを継承 */
         :root { --ura-red: #ff0000; --ura-black: #0d0d0d; }
-        body { background-color: var(--ura-black); color: #888; font-family: 'MS PMincho', serif; margin: 0; }
-        #ban-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; color: red; z-index: 9999; justify-content: center; align-items: center; font-size: 30px; }
+        body { background-color: var(--ura-black); color: #888; font-family: 'serif'; margin: 0; }
         header { border-bottom: 2px solid #300; padding: 40px; text-align: center; }
         .logo { color: var(--ura-red); font-size: 40px; font-weight: bold; text-shadow: 0 0 15px red; }
         .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-        .board-card { background: #111; border: 1px solid #200; padding: 15px; margin-bottom: 10px; cursor: pointer; }
-        .board-title { color: var(--ura-red); font-weight: bold; }
-        .ip-text { color: red; font-family: monospace; font-size: 12px; }
-        .btn-ura { background: #200; color: var(--ura-red); border: 1px solid var(--ura-red); padding: 10px; cursor: pointer; }
-        .post-item { border-bottom: 1px solid #200; padding: 10px; }
+        .board-card { background: #111; border: 1px solid #200; padding: 15px; margin-bottom: 10px; cursor: pointer; position: relative; }
+        .board-title { color: var(--ura-red); font-weight: bold; padding-right: 30px; }
+        .board-del { position: absolute; top: 10px; right: 10px; color: #444; cursor: pointer; }
+        .ip-text { color: red; font-family: monospace; font-size: 11px; font-weight: bold; border: 1px solid red; padding: 0 2px; margin-left: 5px; }
+        .btn-ura { background: #200; color: var(--ura-red); border: 1px solid var(--ura-red); padding: 10px; cursor: pointer; font-weight: bold; }
+        .post-item { border-bottom: 1px solid #200; padding: 15px 0; }
+        .admin-btn { font-size: 11px; color: #555; cursor: pointer; margin-left: 10px; text-decoration: underline; }
     </style>
 </head>
 <body>
 
-<div id="ban-overlay">立ち去れ。</div>
-
 <header>
     <div class="logo">e ちゃんねる - 裏</div>
-    <p>選ばれし者のみが辿り着く場所</p>
+    <p>罪深き者には印を。それ以外には沈黙を。</p>
 </header>
 
 <div class="container" id="top-view">
@@ -33,18 +31,18 @@
 </div>
 
 <div class="container" id="bbs-view" style="display:none;">
-    <input type="text" id="username" value="裏住人" style="background:#000; color:#ccc; border:1px solid #300;">
-    <textarea id="content" placeholder="闇を吐き出せ..." style="width:100%; background:#000; color:#ccc; border:1px solid #300; height:100px;"></textarea>
+    <input type="text" id="username" value="裏住人" style="background:#000; color:#ccc; border:1px solid #300; padding:5px;">
+    <textarea id="content" placeholder="闇を吐き出せ..." style="width:100%; background:#000; color:#ccc; border:1px solid #300; height:100px; margin-top:10px;"></textarea>
     <div style="margin: 10px 0;">
-        <button class="btn-ura" id="send-btn">刻印する</button>
-        <button class="btn-ura" onclick="location.reload()">帰還</button>
+        <button class="btn-ura" id="send-btn">投稿</button>
+        <button class="btn-ura" style="background:#444; color:#fff;" onclick="location.reload()">戻る</button>
     </div>
     <div id="message-container"></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCwhHspaG94goiCIjVj3h-Un5pBK3JTjMU",
@@ -55,7 +53,9 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const ADMIN_PASS = "ZGVsdGE0Mzc="; // delta437
 
+    const sanitize = (str) => str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     const getFp = () => {
         let id = localStorage.getItem('fp');
         if (!id) { id = 'fp_' + Math.random().toString(36).substr(2, 9); localStorage.setItem('fp', id); }
@@ -63,35 +63,30 @@
     };
     const myId = getFp();
     let currentBoardId = '';
+    let isBannedUser = false;
 
-    // 裏の住人認証（アクセスした瞬間に裏住人として登録される）
-    async function initUraUser() {
-        const userRef = doc(db, 'ura_users', myId);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-            await setDoc(userRef, { joined: Date.now(), isUra: true });
-        }
-    }
-    initUraUser();
-
-    // BANチェック
-    async function checkBan() {
+    // BAN状態の確認
+    async function checkBanStatus() {
         const blackSnap = await getDoc(doc(db, 'blacklist', myId));
         if (blackSnap.exists()) {
-            document.getElementById('ban-overlay').style.display = 'flex';
+            isBannedUser = true;
             return true;
         }
+        isBannedUser = false;
         return false;
     }
-    checkBan();
 
-    async function getIp() {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
-        return data.ip;
+    // BANされている時のみIPを取得する
+    async function getIpIfBanned() {
+        if (!isBannedUser) return ""; // BANされていなければ空
+        try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const data = await res.json();
+            return data.ip;
+        } catch { return "unknown_ip"; }
     }
 
-    // 裏専用コレクション「ura_boards」を参照
+    // 掲示板一覧
     onSnapshot(query(collection(db, 'ura_boards'), orderBy('lastUpdated', 'desc')), (snap) => {
         const list = document.getElementById('board-list');
         list.innerHTML = '';
@@ -99,14 +94,25 @@
             const b = d.data();
             const card = document.createElement('div');
             card.className = 'board-card';
-            card.onclick = () => openBoard(d.id);
-            card.innerHTML = `<div class="board-title">${b.title}</div>`;
+            card.onclick = (e) => { if(e.target.className !== 'board-del') openBoard(d.id); };
+            onSnapshot(collection(db, `ura_boards/${d.id}/messages`), (mSnap) => {
+                card.innerHTML = `
+                    <div class="board-del" onclick="deleteUraBoard('${d.id}')">×</div>
+                    <div class="board-title">${sanitize(b.title)}</div>
+                    <div style="font-size:12px;">犠牲: ${mSnap.size}</div>`;
+            });
             list.appendChild(card);
         });
     });
 
+    window.deleteUraBoard = async (id) => {
+        event.stopPropagation();
+        const p = prompt("抹消パスワード:");
+        if (p && btoa(p) === ADMIN_PASS) await deleteDoc(doc(db, 'ura_boards', id));
+    };
+
     window.createNewBoard = async () => {
-        if (await checkBan()) return;
+        await checkBanStatus();
         const t = prompt("板名:");
         if (t) await addDoc(collection(db, 'ura_boards'), { title: t, lastUpdated: Date.now(), ownerId: myId });
     };
@@ -122,32 +128,58 @@
                 const m = d.data();
                 const div = document.createElement('div');
                 div.className = 'post-item';
-                div.innerHTML = `<div>${m.username} <span class="ip-text">[IP: ${m.ip}]</span></div><div>${m.text}</div>`;
+                div.innerHTML = `
+                    <div>
+                        <span style="color:#eee; font-weight:bold;">${sanitize(m.username)}</span>
+                        ${m.ip ? `<span class="ip-text">罪状IP: ${m.ip}</span>` : ''}
+                    </div>
+                    <div style="margin:5px 0; color:#ccc;">${sanitize(m.text)}</div>
+                    <div style="font-size:11px; color:#555;">
+                        ${new Date(m.timestamp).toLocaleString()}
+                        <span class="admin-btn" onclick="adminUra('${d.id}', '${m.uid}')">[管理]</span>
+                    </div>`;
                 container.appendChild(div);
             });
         });
     };
 
     document.getElementById('send-btn').onclick = async () => {
-        if (await checkBan()) return;
-        
-        // 裏住人チェック
-        const userSnap = await getDoc(doc(db, 'ura_users', myId));
-        if (!userSnap.exists() || !userSnap.data().isUra) {
-            alert("貴様に書き込む資格はない。");
-            return;
-        }
+        await checkBanStatus();
+        const txt = document.getElementById('content').value;
+        if (!txt) return;
 
-        const ip = await getIp();
+        // BANされている場合のみIPを取得して刻印する
+        const ipToRecord = await getIpIfBanned();
+
         await addDoc(collection(db, `ura_boards/${currentBoardId}/messages`), {
             username: document.getElementById('username').value,
-            text: document.getElementById('content').value,
+            text: txt,
             timestamp: Date.now(),
-            ip: ip,
+            ip: ipToRecord, // BANユーザーのみIPが入る
             uid: myId
         });
         await setDoc(doc(db, 'ura_boards', currentBoardId), { lastUpdated: Date.now() }, { merge: true });
         document.getElementById('content').value = '';
+    };
+
+    // 裏・管理機能（復活を追加）
+    window.adminUra = async (mId, uId) => {
+        const p = prompt("管理パスワード:");
+        if (p && btoa(p) === ADMIN_PASS) {
+            const a = prompt("操作を選択:\n1:削除\n2:永久BAN\n3:24h制限\n4:復活(BAN解除)");
+            if (a === "1") {
+                await deleteDoc(doc(db, `ura_boards/${currentBoardId}/messages`, mId));
+            } else if (a === "2") {
+                await setDoc(doc(db, 'blacklist', uId), { type: 'perm' });
+                alert("永久に追放しました。");
+            } else if (a === "3") {
+                await setDoc(doc(db, 'blacklist', uId), { type: 'temp', until: Date.now() + (24 * 60 * 60 * 1000) });
+                alert("24時間制限をかけました。");
+            } else if (a === "4") {
+                await deleteDoc(doc(db, 'blacklist', uId));
+                alert("ブラックリストから抹消（復活）させました。");
+            }
+        }
     };
 </script>
 </body>
